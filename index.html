@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skill Swap - Browse Profiles</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+</head>
+<body>
+
+    <header>
+        <h1>Skill Swap Community</h1>
+        <a href="/register" class="btn">Join/Add Profile</a>
+        <div style="margin: 20px 0; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+        <form action="/" method="GET" style="display: flex; gap: 10px;">
+            <input type="text" name="search" value="{{ search_query or '' }}" placeholder="Search by name or skill (e.g., Python)..." 
+                   style="flex: 1; padding: 10px; border: 1px solid #cbd5e0; border-radius: 5px; font-size: 15px;">
+            <button type="submit" class="btn" style="margin: 0; padding: 10px 20px;">Search</button>
+            
+            {% if search_query %}
+                <a href="/" class="btn" style="background-color: #718096; text-decoration: none; padding: 10px 20px;">Clear</a>
+            {% endif %}
+        </form>
+    </div>
+    </header>
+
+    <main>
+        <h2>Available Swappers</h2>
+        <div class="grid">
+            {% for profile in profiles %}
+            <div class="card">
+                <h3>{{ profile.name }}</h3>
+                <p><strong>Offering:</strong> <span class="tag">{{ profile.skill_offer }}</span></p>
+                <p><strong>Seeking:</strong> <span class="tag">{{ profile.skill_seek }}</span></p>
+                <p>{{ profile.bio }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+
+</body>
+</html>
