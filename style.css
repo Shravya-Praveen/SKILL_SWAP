@@ -1,0 +1,73 @@
+/* Base Page Styling */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 30px 20px;
+    background-color: #f7fafc;
+    color: #2d3748;
+}
+
+/* Header Area */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 15px;
+    margin-bottom: 30px;
+}
+
+h1 {
+    color: #1a365d;
+    margin: 0;
+}
+
+/* Reusable Interactive Buttons */
+.btn {
+    background-color: #3182ce;
+    color: white;
+    padding: 12px 20px;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+}
+
+.btn:hover {
+    background-color: #2b6cb0;
+}
+
+/* Dynamic Grid Layout for Profiles */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 25px;
+    margin-top: 20px;
+}
+
+/* Profile Card Styling */
+.card {
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border: 1px solid #edf2f7;
+}
+
+.card h3 {
+    margin-top: 0;
+    color: #2b6cb0;
+}
+
+/* Visual Tags for Skills */
+.tag {
+    display: inline-block;
+    background: #ebf8ff;
+    color: #2b6cb0;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: 600;
+    margin-top: 5px;
+}
