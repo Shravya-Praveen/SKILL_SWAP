@@ -10,7 +10,7 @@
 <body>
 
     <header>
-        <h1>Skill Swap Community</h1>
+        <h1>Skill Swap Platform</h1>
         <a href="/register" class="btn">Join/Add Profile</a>
         <div style="margin: 20px 0; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
         <form action="/" method="GET" style="display: flex; gap: 10px;">
@@ -38,6 +38,12 @@
             {% endfor %}
         </div>
     </main>
+    <div id="chat-container" style="border: 1px solid #ccc; padding: 15px; margin-top: 20px; max-width: 400px;">
+    <h3>Live Swap Chat</h3>
+    <div id="messages" style="height: 200px; overflow-y: scroll; border: 1px solid #eee; padding: 10px; margin-bottom: 10px; background: #fff;"></div>
+    <input type="text" id="myMessage" placeholder="Type a message..." style="width: 70%; padding: 5px;">
+    <button id="sendButton" style="padding: 5px 10px;">Send</button>
+</div>
 
 </body>
 </html>
