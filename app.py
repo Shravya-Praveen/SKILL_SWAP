@@ -1,10 +1,15 @@
 from flask import Flask, render_template, request, redirect, url_for
-
+from flask_socketio import SocketIO, send
+from flask_sqlalchemy import SQLAlchemy
+import os
 
 # 1. Initialize the Flask application
 app = Flask(__name__)
-from flask import Flask, render_template, request
-from flask_socketio import SocketIO, send
+app.config['SECRET_KEY'] ='skillswap_secret_key_123'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+socketio = SocketIO(app, cors_allowed_origins="*")  # Allow CORS for all origins (for development purposes)
 # 2. Temporary Data Store (Using a list of dictionaries to act as a database)
 profiles = [
     {
@@ -20,10 +25,21 @@ profiles = [
         "bio": "Creative designer eager to build my own portfolio website."
     }
 ]
+# 1. Define the User Profile Table Structure
+class UserProfile(db.Model):
+    id = db.Column(db.Integer, primary_key=True)         # Automatic unique ID for each user
+    name = db.Column(db.String(100), nullable=False)     # Name string (Max 100 characters)
+    skill_offer = db.Column(db.String(100), nullable=False) # Skill they teach
+    skill_seek = db.Column(db.String(100), nullable=False)  # Skill they want to learn
+    bio = db.Column(db.Text, nullable=True)              # Paragraph description
 
+# 2. Tell Python to automatically build this table inside your cloud database
+with app.app_context():
+    db.create_all()
 # 3. Route for the Home/Browse Page
+
 @app.route('/')
-@app.route('/')
+
 def index():
     # 1. Grab what the user typed in the search input box
     search_query = request.args.get('search', '').strip().lower()
@@ -43,7 +59,22 @@ def index():
 
     # 4. Send the filtered list and the search text back to the HTML page
     return render_template('index.html', profiles=filtered_profiles, search_query=request.args.get('search', ''))
+@app.route('/')
+def index():
+    search_query = request.args.get('search', '')
 
+    if search_query:
+        # Professional filter logic querying the database directly
+        profiles = UserProfile.query.filter(
+            (UserProfile.name.ilike(f'%{search_query}%')) |
+            (UserProfile.skill_offer.ilike(f'%{search_query}%')) |
+            (UserProfile.skill_seek.ilike(f'%{search_query}%'))
+        ).all()
+    else:
+        # Pull absolutely every registered profile saved in the cloud
+        profiles = UserProfile.query.all()
+
+    return render_template('index.html', title="Skill Swap Platform", profiles=profiles, search_query=search_query)
 # 4. Route for the Registration Form (Handles both viewing and submitting the form)
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -72,6 +103,6 @@ def handle_message(msg):
 
 # 5. Start the local development server
 if __name__ == '__main__':
-    app.run(debug=True)
+    socketio.run(app, debug=True)
 
-"Add real-time live chat functionality to backend"
+
