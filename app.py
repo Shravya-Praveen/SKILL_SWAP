@@ -1,8 +1,10 @@
 from flask import Flask, render_template, request, redirect, url_for
 
+
 # 1. Initialize the Flask application
 app = Flask(__name__)
-
+from flask import Flask, render_template, request
+from flask_socketio import SocketIO, send
 # 2. Temporary Data Store (Using a list of dictionaries to act as a database)
 profiles = [
     {
@@ -62,6 +64,14 @@ def register():
     # If it's a GET request, just display the empty form page
     return render_template('register.html')
 
+@socketio.on('message')
+def handle_message(msg):
+    print('Message received: ' + msg)
+    # This sends the message out to everyone currently connected to the chat
+    send(msg, broadcast=True)
+
 # 5. Start the local development server
 if __name__ == '__main__':
     app.run(debug=True)
+
+"Add real-time live chat functionality to backend"
