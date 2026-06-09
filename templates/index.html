@@ -1,49 +1,17 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skill Swap - Browse Profiles</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    
-</head>
-<body>
+<h2>Available Swappers</h2>
 
-    <header>
-        <h1>Skill Swap Platform</h1>
-        <a href="/register" class="btn">Join/Add Profile</a>
-        <div style="margin: 20px 0; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-        <form action="/" method="GET" style="display: flex; gap: 10px;">
-            <input type="text" name="search" value="{{ search_query or '' }}" placeholder="Search by name or skill (e.g., Python)..." 
-                   style="flex: 1; padding: 10px; border: 1px solid #cbd5e0; border-radius: 5px; font-size: 15px;">
-            <button type="submit" class="btn" style="margin: 0; padding: 10px 20px;">Search</button>
-            
-            {% if search_query %}
-                <a href="/" class="btn" style="background-color: #718096; text-decoration: none; padding: 10px 20px;">Clear</a>
-            {% endif %}
-        </form>
+<div class="profiles-container">
+    {% for profile in profiles %}
+    <div class="profile-card" style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px;">
+        <h3>{{ profile.name }}</h3>
+        
+        <p><strong>Offering:</strong> <span class="badge">{{ profile.skill_offer }}</span></p>
+        
+        <p><strong>Seeking:</strong> <span class="badge">{{ profile.skill_seek }}</span></p>
+        
+        <p>{{ profile.bio }}</p>
     </div>
-    </header>
-
-    <main>
-        <h2>Available Swappers</h2>
-        <div class="grid">
-            {% for profile in profiles %}
-            <div class="card">
-                <h3>{{ profile.name }}</h3>
-                <p><strong>Offering:</strong> <span class="tag">{{ profile.skill_offer }}</span></p>
-                <p><strong>Seeking:</strong> <span class="tag">{{ profile.skill_seek }}</span></p>
-                <p>{{ profile.bio }}</p>
-            </div>
-            {% endfor %}
-        </div>
-    </main>
-    <div id="chat-container" style="border: 1px solid #ccc; padding: 15px; margin-top: 20px; max-width: 400px;">
-    <h3>Live Swap Chat</h3>
-    <div id="messages" style="height: 200px; overflow-y: scroll; border: 1px solid #eee; padding: 10px; margin-bottom: 10px; background: #fff;"></div>
-    <input type="text" id="myMessage" placeholder="Type a message..." style="width: 70%; padding: 5px;">
-    <button id="sendButton" style="padding: 5px 10px;">Send</button>
+    {% else %}
+    <p>No swappers found matching your search criteria.</p>
+    {% endfor %}
 </div>
-
-</body>
-</html>
