@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for
 from flask_socketio import SocketIO, emit, join_room
 from flask_sqlalchemy import SQLAlchemy
+from flask_socketio import emit, join_room, leave_room
 import os
 
 app = Flask(__name__)
@@ -41,17 +42,46 @@ def private_chat(sender_id, receiver_id):
     receiver = UserProfile.query.get_or_404(receiver_id)
     return render_template('chat.html', sender=sender, receiver=receiver)
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        # Grab data submitted from the registration form
+        name = request.form.get('name')
+        skill_offer = request.form.get('skill_offer')
+        skill_seek = request.form.get('skill_seek')
+        bio = request.form.get('bio')
+        
+        # Save the new user to your SQLite database
+        new_user = UserProfile(name=name, skill_offer=skill_offer, skill_seek=skill_seek, bio=bio)
+        db.session.add(new_user)
+        db.session.commit()
+        
+        return redirect(url_for('index'))
+        
+    return render_template('register.html')
+
+
 @socketio.on('join')
 def on_join(data):
-    room = data['room']
+    # Dynamically create a unique room name for these two specific users
+    sender = min(int(data['sender_id']), int(data['receiver_id']))
+    receiver = max(int(data['sender_id']), int(data['receiver_id']))
+    room = f"room_{sender}_{receiver}"
+    
     join_room(room)
+    print(f"User joined private room: {room}")
 
 @socketio.on('private_message')
 def handle_private_message(data):
-    room = data['room']
-    sender_name = data['sender']
-    message = data['message']
-    payload = f"<strong>{sender_name}:</strong> {message}"
+    sender = min(int(data['sender_id']), int(data['receiver_id']))
+    receiver = max(int(data['sender_id']), int(data['receiver_id']))
+    room = f"room_{sender}_{receiver}"
+    
+    payload = {
+        'sender_name': data['sender_name'],
+        'message': data['message']
+    }
+    # Send the message ONLY to users inside this private room
     emit('new_message', payload, to=room)
 
 if __name__ == '__main__':
