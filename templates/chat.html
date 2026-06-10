@@ -29,60 +29,43 @@
         </div>
     </div>
 
-    <script src="https://cdn.socketio.org/4.7.5/socketio.min.js"></script>
-    <script>
-        const socket = io({
-            transports: ['websocket', 'polling']
-        });
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 
-        const sId = parseInt("{{ sender.id }}");
-        const rId = parseInt("{{ receiver.id }}");
-        const roomName = sId < rId ? `room_${sId}_${rId}` : `room_${rId}_${sId}`;
+<script>
+    const socket = io();
 
-        socket.emit('join', { room: roomName });
+    // Read variables dynamically injected by the Python Flask route layout
+    const senderId = "{{ sender.id }}";
+    const receiverId = "{{ receiver.id }}";
+    const senderName = "{{ sender.name }}";
 
-        const msgDiv = document.getElementById('private-messages');
-        const inputMsg = document.getElementById('chatMessage');
-        const inputSender = document.getElementById('senderName');
-        const sendBtn = document.getElementById('sendButton');
+    // Tell Python to join the private room as soon as this page loads
+    socket.emit('join', { sender_id: senderId, receiver_id: receiverId });
 
-        socket.on('new_message', function(msg) {
-            const row = document.createElement('div');
-            row.style.padding = '8px';
-            row.style.background = '#eef9f1';
-            row.style.borderRadius = '4px';
-            row.style.maxWidth = '85%';
-            row.style.wordBreak = 'break-word';
-            row.innerHTML = msg;
-            
-            msgDiv.appendChild(row);
-            msgDiv.scrollTop = msgDiv.scrollHeight;
-        });
-
-        function transmitMessage() {
-            const text = inputMsg.value.trim();
-            if (text !== "") {
-                socket.emit('private_message', {
-                    room: roomName,
-                    sender: inputSender.value,
-                    message: text
-                });
-                inputMsg.value = '';
-                inputMsg.focus();
-            }
+    // When clicking the send button
+    document.getElementById('send-btn').onclick = function() {
+        const messageInput = document.getElementById('message-input');
+        const msg = messageInput.value;
+        
+        if (msg.trim() !== "") {
+            // Send message details over WebSocket to the Python server
+            socket.emit('private_message', {
+                sender_id: senderId,
+                receiver_id: receiverId,
+                sender_name: senderName,
+                message: msg
+            });
+            messageInput.value = ''; // Clear the text input box
         }
+    };
 
-        sendBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            transmitMessage();
-        });
-
-        inputMsg.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                transmitMessage();
-            }
-        });
-    </script>
+    // Listen for incoming messages broadcasted by the Python server
+    socket.on('new_message', function(data) {
+        const item = document.createElement('li');
+        item.textContent = `${data.sender_name}: ${data.message}`;
+        document.getElementById('messages').appendChild(item);
+    });
+</script>
+</body>
 </body>
 </html>
