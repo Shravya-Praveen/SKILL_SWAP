@@ -38,8 +38,7 @@
                 <p><strong>Seeking:</strong> <span class="badge badge-seek">{{ profile.skill_seek }}</span></p>
                 <p style="color: #555; font-style: italic;">"{{ profile.bio }}"</p>
             </div>
-            <a href="/chat/{{ profile.id }}" class="chat-btn">💬 Chat Privately</a>
-        </div>
+            <a href="/chat/1/{{ profile.id }}" class="chat-btn">💬 Chat Privately</a>        </div>
         {% else %}
         <p>No swappers found matching your search criteria.</p>
         {% endfor %}
