@@ -30,44 +30,25 @@ def index():
 # BACKEND CHANGE: Accept both sender and receiver IDs to build a true peer-to-peer room
 @app.route('/chat/<int:sender_id>/<int:receiver_id>')
 def private_chat(sender_id, receiver_id):
-
     sender = UserProfile.query.get_or_404(sender_id)
     receiver = UserProfile.query.get_or_404(receiver_id)
-
-    room = f"room_{min(sender_id, receiver_id)}_{max(sender_id, receiver_id)}"
-
-    return render_template(
-        'chat.html',
-        sender=sender,
-        receiver=receiver,
-        room=room
-    )
+    return render_template('chat.html', sender=sender, receiver=receiver)
 
 # WebSocket Room Engine Manager
 @socketio.on('join')
-def join(data):
+def on_join(data):
     room = data['room']
     join_room(room)
-
-    emit(
-        'status',
-        {'msg': 'User joined'},
-        room=room
-    )
+    print(join_room(room)) # Server logs verification line
 
 @socketio.on('private_message')
-def private_message(data):
-
+def handle_private_message(data):
     room = data['room']
-
-    emit(
-        'new_message',
-        {
-            'sender': data['sender'],
-            'message': data['message']
-        },
-        room=room
-    )
+    sender_name = data['sender']
+    message = data['message']
+    payload = f"<strong>{sender_name}:</strong> {message}"
+    # Secure broadcast directly inside the room matrix
+    emit('new_message', payload, to=room)
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)
