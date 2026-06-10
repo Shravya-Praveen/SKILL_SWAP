@@ -9,7 +9,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:/
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-socketio = SocketIO(app, cors_allowed_origins="*")
+# Explicitly configuration for Render deployment to handle fallback streaming
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
 
 class UserProfile(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -23,50 +24,30 @@ with app.app_context():
 
 @app.route('/')
 def index():
-    search_query = request.args.get('search', '')
-    if search_query:
-        profiles = UserProfile.query.filter(
-            (UserProfile.name.ilike(f'%{search_query}%')) |
-            (UserProfile.skill_offer.ilike(f'%{search_query}%')) |
-            (UserProfile.skill_seek.ilike(f'%{search_query}%'))
-        ).all()
-    else:
-        profiles = UserProfile.query.all()
-    return render_template('index.html', title="Skill Swap Platform", profiles=profiles, search_query=search_query)
+    profiles = UserProfile.query.all()
+    return render_template('index.html', title="Skill Swap Platform", profiles=profiles)
 
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        new_profile = UserProfile(
-            name=request.form.get('name'),
-            skill_offer=request.form.get('skill_offer'),
-            skill_seek=request.form.get('skill_seek'),
-            bio=request.form.get('bio')
-        )
-        db.session.add(new_profile)
-        db.session.commit()
-        return redirect(url_for('index'))
-    return render_template('register.html')
-
-# NEW: Route to launch a private chat window with a specific swapper
-@app.route('/chat/<int:receiver_id>')
-def private_chat(receiver_id):
+# BACKEND CHANGE: Accept both sender and receiver IDs to build a true peer-to-peer room
+@app.route('/chat/<int:sender_id>/<int:receiver_id>')
+def private_chat(sender_id, receiver_id):
+    sender = UserProfile.query.get_or_404(sender_id)
     receiver = UserProfile.query.get_or_404(receiver_id)
-    return render_template('chat.html', receiver=receiver)
+    return render_template('chat.html', sender=sender, receiver=receiver)
 
-# WebSocket Room Handlers
+# WebSocket Room Engine Manager
 @socketio.on('join')
 def on_join(data):
     room = data['room']
     join_room(room)
+    print(join_room(room)) # Server logs verification line
 
 @socketio.on('private_message')
 def handle_private_message(data):
     room = data['room']
-    sender = data['sender']
+    sender_name = data['sender']
     message = data['message']
-    payload = f"<strong>{sender}:</strong> {message}"
-    # Broadcast exclusively inside the designated private room channel
+    payload = f"<strong>{sender_name}:</strong> {message}"
+    # Secure broadcast directly inside the room matrix
     emit('new_message', payload, to=room)
 
 if __name__ == '__main__':
