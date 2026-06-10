@@ -77,4 +77,80 @@
         });
     </script>
 </body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Private Chat with {{ receiver.name }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+</head>
+<body>
+
+    <div style="margin-top: 20px;">
+        <a href="/" style="text-decoration: none;">⬅ Back to Dashboard</a>
+        <h2>Chatting with: <span style="color: #28a745;">{{ receiver.name }}</span></h2>
+        <p style="margin-top: -10px; color: gray;">Expertise: {{ receiver.skill_offer }}</p>
+    </div>
+
+    <div style="border: 1px solid #ccc; padding: 15px; background: #fff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 600px;">
+        
+        <div style="margin-bottom: 15px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 5px;">Your Name:</label>
+            <input type="text" id="senderName" placeholder="Enter your identity to start..." style="width: 100%; padding: 8px;">
+        </div>
+
+        <div id="private-messages" style="height: 250px; overflow-y: auto; border: 1px solid #eee; padding: 10px; margin-bottom: 15px; background: #fafafa; border-radius: 4px;"></div>
+        
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="chatMessage" placeholder="Write a secure message..." style="flex-grow: 1; padding: 8px;">
+            <button id="sendButton" style="background-color: #28a745; color: white; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer;">Send</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.socketio.org/4.7.5/socketio.min.js"></script>
+    <script>
+        const socket = io();
+
+        const receiverId = "{{ receiver.id }}";
+        const roomName = `room_to_user_${receiverId}`;
+
+        // Join the private communication room channel
+        socket.emit('join', { room: roomName });
+
+        const msgDiv = document.getElementById('private-messages');
+        const inputMsg = document.getElementById('chatMessage');
+        const inputSender = document.getElementById('senderName');
+        const sendBtn = document.getElementById('sendButton'); // <-- Updated to match the button ID perfectly
+
+        socket.on('new_message', function(msg) {
+            const row = document.createElement('div');
+            row.style.padding = '6px 0';
+            row.style.borderBottom = '1px solid #f9f9f9';
+            row.innerHTML = msg;
+            msgDiv.appendChild(row);
+            msgDiv.scrollTop = msgDiv.scrollHeight; // Keep message box scrolled to bottom
+        });
+
+        sendBtn.addEventListener('click', function() {
+            const sender = inputSender.value.trim() || "Interested Swapper";
+            const text = inputMsg.value.trim();
+            
+            if (text !== "") {
+                socket.emit('private_message', {
+                    room: roomName,
+                    sender: sender,
+                    message: text
+                });
+                inputMsg.value = ''; // Clear message input field
+            }
+        });
+
+        inputMsg.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendBtn.click();
+            }
+        });
+    </script>
+</body>
 </html>
