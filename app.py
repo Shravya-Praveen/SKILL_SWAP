@@ -9,7 +9,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:/
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# Explicitly configuration for Render deployment to handle fallback streaming
+# Configure SocketIO engine safely for Render deployment
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
 
 class UserProfile(db.Model):
@@ -21,25 +21,30 @@ class UserProfile(db.Model):
 
 with app.app_context():
     db.create_all()
+    # If the database is empty, let's pre-populate it with your users
+    if UserProfile.query.count() == 0:
+        u1 = UserProfile(name="Alex Johnson", skill_offer="Python Programming", skill_seek="UI/UX Design", bio="Experienced backend developer.")
+        u2 = UserProfile(name="Priya Sharma", skill_offer="Graphic Design", skill_seek="Web Development", bio="Creative designer eager to build.")
+        u3 = UserProfile(name="Soujanya", skill_offer="Dance", skill_seek="Music", bio="Looking to trade dance choreography.")
+        db.session.add_all([u1, u2, u3])
+        db.session.commit()
 
 @app.route('/')
 def index():
     profiles = UserProfile.query.all()
     return render_template('index.html', title="Skill Swap Platform", profiles=profiles)
 
-# BACKEND CHANGE: Accept both sender and receiver IDs to build a true peer-to-peer room
+# Core Chat Handler: Matches the sender profile and receiver profile together
 @app.route('/chat/<int:sender_id>/<int:receiver_id>')
 def private_chat(sender_id, receiver_id):
     sender = UserProfile.query.get_or_404(sender_id)
     receiver = UserProfile.query.get_or_404(receiver_id)
     return render_template('chat.html', sender=sender, receiver=receiver)
 
-# WebSocket Room Engine Manager
 @socketio.on('join')
 def on_join(data):
     room = data['room']
     join_room(room)
-    print(join_room(room)) # Server logs verification line
 
 @socketio.on('private_message')
 def handle_private_message(data):
@@ -47,7 +52,6 @@ def handle_private_message(data):
     sender_name = data['sender']
     message = data['message']
     payload = f"<strong>{sender_name}:</strong> {message}"
-    # Secure broadcast directly inside the room matrix
     emit('new_message', payload, to=room)
 
 if __name__ == '__main__':
