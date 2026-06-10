@@ -31,58 +31,40 @@
 
     <script src="https://cdn.socketio.org/4.7.5/socketio.min.js"></script>
     <script>
-        const socket = io({
-            transports: ['websocket', 'polling']
-        });
+const socket = io();
 
-        const sId = parseInt("{{ sender.id }}");
-        const rId = parseInt("{{ receiver.id }}");
-        const roomName = sId < rId ? `room_${sId}_${rId}` : `room_${rId}_${sId}`;
+const room = "{{ room }}";
 
-        socket.emit('join', { room: roomName });
+socket.emit("join", {
+    room: room
+});
 
-        const msgDiv = document.getElementById('private-messages');
-        const inputMsg = document.getElementById('chatMessage');
-        const inputSender = document.getElementById('senderName');
-        const sendBtn = document.getElementById('sendButton');
+function sendMessage() {
 
-        socket.on('new_message', function(msg) {
-            const row = document.createElement('div');
-            row.style.padding = '8px';
-            row.style.background = '#eef9f1';
-            row.style.borderRadius = '4px';
-            row.style.maxWidth = '85%';
-            row.style.wordBreak = 'break-word';
-            row.innerHTML = msg;
-            
-            msgDiv.appendChild(row);
-            msgDiv.scrollTop = msgDiv.scrollHeight;
-        });
+    let message =
+        document.getElementById("message").value;
 
-        function transmitMessage() {
-            const text = inputMsg.value.trim();
-            if (text !== "") {
-                socket.emit('private_message', {
-                    room: roomName,
-                    sender: inputSender.value,
-                    message: text
-                });
-                inputMsg.value = '';
-                inputMsg.focus();
-            }
-        }
+    socket.emit("private_message", {
+        room: room,
+        sender: "{{ sender.name }}",
+        message: message
+    });
 
-        sendBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            transmitMessage();
-        });
+    document.getElementById("message").value = "";
+}
 
-        inputMsg.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                transmitMessage();
-            }
-        });
-    </script>
+socket.on("new_message", function(data) {
+
+    let chatBox =
+        document.getElementById("chat-box");
+
+    chatBox.innerHTML +=
+        "<p><b>" +
+        data.sender +
+        ":</b> " +
+        data.message +
+        "</p>";
+});
+</script>
 </body>
 </html>
