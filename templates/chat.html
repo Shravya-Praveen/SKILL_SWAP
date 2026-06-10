@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Private Chat with {{ receiver.name }}</title>
+    <title>Private Chat</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
 </head>
 <body>
@@ -11,35 +11,37 @@
     <div style="margin-top: 20px;">
         <a href="/" style="text-decoration: none;">⬅ Back to Dashboard</a>
         <h2>Chatting with: <span style="color: #28a745;">{{ receiver.name }}</span></h2>
-        <p style="margin-top: -10px; color: gray;">Expertise: {{ receiver.skill_offer }}</p>
+        <p style="margin-top: -10px; color: gray;">Their Expertise: {{ receiver.skill_offer }}</p>
     </div>
 
     <div style="border: 1px solid #ccc; padding: 15px; background: #fff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 600px;">
         
         <div style="margin-bottom: 15px;">
             <label style="font-weight: bold; display: block; margin-bottom: 5px;">Your Name:</label>
-            <input type="text" id="senderName" value="Sonali" placeholder="Enter your name..." style="width: 100%; padding: 8px;">
+            <input type="text" id="senderName" value="{{ sender.name }}" readonly style="width: 100%; padding: 8px; background-color: #f0f0f0; color: #555;">
         </div>
 
         <div id="private-messages" style="height: 250px; overflow-y: auto; border: 1px solid #eee; padding: 10px; margin-bottom: 15px; background: #fafafa; border-radius: 4px; display: flex; flex-direction: column; gap: 5px;"></div>
         
         <div style="display: flex; gap: 10px;">
-            <input type="text" id="chatMessage" placeholder="Write a secure message..." style="flex-grow: 1; padding: 8px;">
+            <input type="text" id="chatMessage" placeholder="Write a message..." style="flex-grow: 1; padding: 8px;">
             <button id="sendButton" style="background-color: #28a745; color: white; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer;">Send</button>
         </div>
     </div>
 
     <script src="https://cdn.socketio.org/4.7.5/socketio.min.js"></script>
     <script>
-        // Force long-polling backup connection style if WebSockets struggle on Render free tier
+        // Use standard fallback configurations for smooth message transmission
         const socket = io({
-            transports: ['polling', 'websocket']
+            transports: ['websocket', 'polling']
         });
 
-        const receiverId = "{{ receiver.id }}";
-        const roomName = `room_to_user_${receiverId}`;
+        // Generate a sorted unique room identifier using both user IDs (e.g., room_1_3)
+        const sId = parseInt("{{ sender.id }}");
+        const rId = parseInt("{{ receiver.id }}");
+        const roomName = sId < rId ? `room_${sId}_${rId}` : `room_${rId}_${sId}`;
 
-        // Join the private channel room immediately on loading
+        // Connect securely to this specific private chat room channel
         socket.emit('join', { room: roomName });
 
         const msgDiv = document.getElementById('private-messages');
@@ -47,7 +49,6 @@
         const inputSender = document.getElementById('senderName');
         const sendBtn = document.getElementById('sendButton');
 
-        // Listen for new private messages coming from the Python backend server room
         socket.on('new_message', function(msg) {
             const row = document.createElement('div');
             row.style.padding = '8px';
@@ -58,36 +59,31 @@
             row.innerHTML = msg;
             
             msgDiv.appendChild(row);
-            msgDiv.scrollTop = msgDiv.scrollHeight; // Auto scroll window down
+            msgDiv.scrollTop = msgDiv.scrollHeight;
         });
 
-        // Reusable execution function for sending data
-        function sendMessageAction() {
-            const sender = inputSender.value.trim() || "Anonymous Swapper";
+        function transmitMessage() {
             const text = inputMsg.value.trim();
-            
             if (text !== "") {
                 socket.emit('private_message', {
                     room: roomName,
-                    sender: sender,
+                    sender: inputSender.value,
                     message: text
                 });
-                inputMsg.value = ''; // Clean the text box window instantly
+                inputMsg.value = '';
                 inputMsg.focus();
             }
         }
 
-        // Click Handler Button Event
         sendBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            sendMessageAction();
+            transmitMessage();
         });
 
-        // Keypress Handler Input Box Event
         inputMsg.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                sendMessageAction();
+                transmitMessage();
             }
         });
     </script>
