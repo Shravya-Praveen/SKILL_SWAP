@@ -1,6 +1,5 @@
-import eventlet
-# Crucial fix for Render: Monkey patch MUST happen before any other imports!
-eventlet.monkey_patch()
+import gevent.monkey
+gevent.monkey.patch_all()
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
@@ -8,6 +7,7 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 import os
 
 app = Flask(__name__)
+# ... (Keep the rest of your app.py code exactly the same as provided before) ...
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'secret_skill_swap_key_123')
 
 # Database configuration (Defaults to local sqlite if DATABASE_URL isn't set on Render)
