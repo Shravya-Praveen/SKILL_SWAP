@@ -11,9 +11,15 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'secret_skill_swap_key_123')
 
 # Database configuration (Defaults to local sqlite if DATABASE_URL isn't set on Render)
-DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///skill_swap.db')
+# --- DATABASE CONNECTION ---
+# Fallback to an absolute SQLite path if DATABASE_URL doesn't exist
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if not DATABASE_URL:
+    DATABASE_URL = 'sqlite:////tmp/skill_swap.db' # Uses temporary writeable memory folder
+
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
