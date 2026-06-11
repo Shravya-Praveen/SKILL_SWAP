@@ -19,7 +19,7 @@
 <body>
 
     <div class="header-container">
-        <h1>Skill Swap Community</h1>
+        <h1>Skill Swap Platform</h1>
         <a href="/register" class="button" style="text-decoration: none; padding: 10px 15px; background: #007bff; color: white; border-radius: 4px;">Join/Add Profile</a>
     </div>
 
@@ -34,11 +34,11 @@
         <div class="profile-card">
             <div>
                 <h3 style="margin-top: 0; color: #007bff;">{{ profile.name }}</h3>
-                <p><strong>Offering:</strong> <span class="badge">{{ profile.skill_offer }}</span></p>
-                <p><strong>Seeking:</strong> <span class="badge badge-seek">{{ profile.skill_seek }}</span></p>
+                <p><strong>Offering:</strong> <span class="badge">{{ profile.offering }}</span></p>
+                <p><strong>Seeking:</strong> <span class="badge badge-seek">{{ profile.seeking }}</span></p>
                 <p style="color: #555; font-style: italic;">"{{ profile.bio }}"</p>
             </div>
-            <a href="/chat/1/{{ profile.id }}" class="chat-btn" style="display: block; text-align: center; margin-top: 15px; padding: 8px; background-color: #28a745; color: white; border-radius: 4px; text-decoration: none;">💬 Chat Privately</a>
+            <a href="/chat/{{ profile.id }}" class="chat-btn">Chat</a>
         </div>
         {% else %}
         <p>No swappers found matching your search criteria.</p>
