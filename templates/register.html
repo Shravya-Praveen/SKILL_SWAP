@@ -3,45 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Profile</title>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; background-color: #f4f7f6; }
-        form { background: white; padding: 3px 25px 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input, textarea { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        button { background-color: #48bb78; color: white; border: none; padding: 10px 15px; width: 100%; border-radius: 5px; cursor: pointer; font-size: 1em; }
-        a { display: block; text-align: center; margin-top: 15px; color: #2b6cb0; text-decoration: none; }
-    </style>
+    <title>Join Skill Swap Community</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-gray-100 font-sans">
 
-    <form action="/register" method="POST">
-        <h2>Create Your Swap Profile</h2>
+    <div class="max-w-md mx-auto mt-12 p-8 bg-white rounded-lg shadow-md">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Create Your Swapper Profile</h2>
         
-        <div class="form-group">
-            <label for="name">Full Name:</label>
-            <input type="text" id="name" name="name" required>
-        </div>
+        <form action="/register" method="POST" class="space-y-4">
+            <div>
+                <label class="block text-gray-700 font-medium mb-1">Your Name</label>
+                <input type="text" name="name" required class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
 
-        <div class="form-group">
-            <label for="skill_offer">Skill You Teach/Offer:</label>
-            <input type="text" id="skill_offer" name="skill_offer" placeholder="e.g. Python, Cooking" required>
-        </div>
+            <div>
+                <label class="block text-gray-700 font-medium mb-1">What Skill Are You Offering?</label>
+                <input type="text" name="offering" placeholder="e.g., Videography, Dance" required class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
 
-        <div class="form-group">
-            <label for="skill_seek">Skill You Want to Learn:</label>
-            <input type="text" id="skill_seek" name="skill_seek" placeholder="e.g. UI/UX, Guitar" required>
-        </div>
+            <div>
+                <label class="block text-gray-700 font-medium mb-1">What Skill Are You Seeking?</label>
+                <input type="text" name="seeking" placeholder="e.g., Cooking, Python" required class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
 
-        <div class="form-group">
-            <label for="bio">Short Bio:</label>
-            <textarea id="bio" name="bio" rows="4" required></textarea>
-        </div>
+            <div>
+                <label class="block text-gray-700 font-medium mb-1">Short Bio</label>
+                <textarea name="bio" placeholder="Tell others a bit about your background..." class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 h-24"></textarea>
+            </div>
 
-        <button type="submit">Publish Profile</button>
-        <a href="/">Back to Browse</a>
-    </form>
+            <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700 transition">Save Profile</button>
+        </form>
+        
+        <div class="text-center mt-4">
+            <a href="/" class="text-sm text-gray-500 hover:underline">Cancel and go back</a>
+        </div>
+    </div>
 
 </body>
 </html>
