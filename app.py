@@ -24,7 +24,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
 
 # --- DATABASE MODELS ---
 class User(db.Model):
@@ -44,8 +44,16 @@ class Message(db.Model):
 
 @app.route('/')
 def index():
-    users = User.query.all()
-    return render_template('index.html', users=users)
+    search_query = request.args.get('search', '')
+    if search_query:
+        profiles = User.query.filter(
+            (User.name.ilike(f'%{search_query}%')) |
+            (User.offering.ilike(f'%{search_query}%')) |
+            (User.seeking.ilike(f'%{search_query}%'))
+        ).all()
+    else:
+        profiles = User.query.all()
+    return render_template('index.html', profiles=profiles, title='Skill Swap Platform', search_query=search_query)
 
 # Fix for the 404 error shown in image 5fdfab0d-6578-47fa-bbd9-a4b34016834f
 @app.route('/register', methods=['GET', 'POST'])
