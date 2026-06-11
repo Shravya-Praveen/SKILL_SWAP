@@ -1,7 +1,7 @@
 flask
 flask-socketio
 flask-sqlalchemy
-eventlet
+gevent
+gevent-websocket
 gunicorn
-gunicorn[eventlet]
 psycopg2-binary
