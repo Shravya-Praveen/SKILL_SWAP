@@ -1,88 +1,94 @@
-from flask import Flask, render_template, request, redirect, url_for
-from flask_socketio import SocketIO, emit, join_room
+import eventlet
+# Crucial fix for Render: Monkey patch MUST happen before any other imports!
+eventlet.monkey_patch()
+
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
-from flask_socketio import emit, join_room, leave_room
+from flask_socketio import SocketIO, emit, join_room, leave_room
 import os
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'skillswap_secret_key_123'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///skillswap.db')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'secret_skill_swap_key_123')
+
+# Database configuration (Defaults to local sqlite if DATABASE_URL isn't set on Render)
+DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///skill_swap.db')
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 db = SQLAlchemy(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
-# Configure SocketIO engine safely for Render deployment
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
-
-class UserProfile(db.Model):
+# --- DATABASE MODELS ---
+class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    skill_offer = db.Column(db.String(100), nullable=False)
-    skill_seek = db.Column(db.String(100), nullable=False)
+    offering = db.Column(db.String(100), nullable=False)
+    seeking = db.Column(db.String(100), nullable=False)
     bio = db.Column(db.Text, nullable=True)
 
-with app.app_context():
-    db.create_all()
-    # If the database is empty, let's pre-populate it with your users
-    if UserProfile.query.count() == 0:
-        u1 = UserProfile(name="Alex Johnson", skill_offer="Python Programming", skill_seek="UI/UX Design", bio="Experienced backend developer.")
-        u2 = UserProfile(name="Priya Sharma", skill_offer="Graphic Design", skill_seek="Web Development", bio="Creative designer eager to build.")
-        u3 = UserProfile(name="Soujanya", skill_offer="Dance", skill_seek="Music", bio="Looking to trade dance choreography.")
-        db.session.add_all([u1, u2, u3])
-        db.session.commit()
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    room = db.Column(db.String(100), nullable=False)
+    sender = db.Column(db.String(100), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+
+# --- ROUTES ---
 
 @app.route('/')
 def index():
-    profiles = UserProfile.query.all()
-    return render_template('index.html', title="Skill Swap Platform", profiles=profiles)
+    users = User.query.all()
+    return render_template('index.html', users=users)
 
-# Core Chat Handler: Matches the sender profile and receiver profile together
-@app.route('/chat/<int:sender_id>/<int:receiver_id>')
-def private_chat(sender_id, receiver_id):
-    sender = UserProfile.query.get_or_404(sender_id)
-    receiver = UserProfile.query.get_or_404(receiver_id)
-    return render_template('chat.html', sender=sender, receiver=receiver)
-
+# Fix for the 404 error shown in image 5fdfab0d-6578-47fa-bbd9-a4b34016834f
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        # Grab data submitted from the registration form
         name = request.form.get('name')
-        skill_offer = request.form.get('skill_offer')
-        skill_seek = request.form.get('skill_seek')
-        bio = request.form.get('bio')
+        offering = request.form.get('offering')
+        seeking = request.form.get('seeking')
+        bio = request.form.get('bio', '')
         
-        # Save the new user to your SQLite database
-        new_user = UserProfile(name=name, skill_offer=skill_offer, skill_seek=skill_seek, bio=bio)
-        db.session.add(new_user)
-        db.session.commit()
-        
-        return redirect(url_for('index'))
-        
+        if name and offering and seeking:
+            new_user = User(name=name, offering=offering, seeking=seeking, bio=bio)
+            db.session.add(new_user)
+            db.session.commit()
+            return redirect(url_for('index'))
+            
     return render_template('register.html')
 
+@app.route('/chat/<int:user_id>')
+def chat(user_id):
+    target_user = User.query.get_or_404(user_id)
+    return render_template('chat.html', target_user=target_user)
+
+# --- WEBSOCKET EVENT HANDLERS ---
 
 @socketio.on('join')
 def on_join(data):
-    # Dynamically create a unique room name for these two specific users
-    sender = min(int(data['sender_id']), int(data['receiver_id']))
-    receiver = max(int(data['sender_id']), int(data['receiver_id']))
-    room = f"room_{sender}_{receiver}"
-    
+    room = data['room']
     join_room(room)
-    print(f"User joined private room: {room}")
+    # Optional: Fetch past chat history from database and send it back to the single user
+    past_messages = Message.query.filter_by(room=room).all()
+    for msg in past_messages:
+        emit('message_response', {'sender': msg.sender, 'content': msg.content}, room=request.sid)
 
-@socketio.on('private_message')
-def handle_private_message(data):
-    sender = min(int(data['sender_id']), int(data['receiver_id']))
-    receiver = max(int(data['sender_id']), int(data['receiver_id']))
-    room = f"room_{sender}_{receiver}"
+@socketio.on('send_message')
+def handle_send_message(data):
+    room = data['room']
+    sender = data['sender']
+    content = data['content']
     
-    payload = {
-        'sender_name': data['sender_name'],
-        'message': data['message']
-    }
-    # Send the message ONLY to users inside this private room
-    emit('new_message', payload, to=room)
+    # Save the conversation to the database
+    new_msg = Message(room=room, sender=sender, content=content)
+    db.session.add(new_msg)
+    db.session.commit()
+    
+    # Broadcast message to everyone in the chat room room
+    emit('message_response', {'sender': sender, 'content': content}, room=room)
 
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
     socketio.run(app, debug=True)
