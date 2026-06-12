@@ -4,10 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chatting with {{ target_user.name }}</title>
-    <!-- Tailwind CSS CDN for quick clean formatting -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Socket.io client dependency -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socketio/4.7.5/socketio.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 <body class="bg-gray-100 font-sans">
 
@@ -15,81 +13,88 @@
         <div class="flex justify-between items-center border-b pb-4 mb-4">
             <div>
                 <a href="/" class="text-blue-500 hover:underline text-sm">&larr; Back to Dashboard</a>
-                <h1 class="text-2xl font-bold text-gray-800">Chatting with: <span class="text-green-600">{{ target_user.name }}</span></h1>
+                <h1 class="text-2xl font-bold text-gray-800">Chatting with:
+                    <span class="text-green-600">{{ target_user.name }}</span>
+                </h1>
                 <p class="text-gray-500 text-sm">Their Expertise: {{ target_user.offering }}</p>
             </div>
         </div>
 
-        <!-- Name Selection Row -->
+        <!-- Show who you are (pre-filled if profile was selected) -->
         <div class="mb-4">
             <label class="block text-gray-700 font-bold mb-2">Your Name:</label>
-            <input id="sender_name" type="text" placeholder="Enter your name to start chatting..." class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+            <input id="sender_name" type="text"
+                   value="{{ my_user.name if my_user else '' }}"
+                   placeholder="Enter your name to start chatting..."
+                   class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
         </div>
 
-        <!-- Message Box Containers -->
-        <div id="chat_window" class="h-64 border rounded-md p-4 bg-gray-50 overflow-y-auto mb-4 flex flex-col gap-2">
-            <!-- Dynamic Messages Go Here -->
+        <!-- Message window -->
+        <div id="chat_window"
+             class="h-72 border rounded-md p-4 bg-gray-50 overflow-y-auto mb-4 flex flex-col gap-2">
+            <p class="text-gray-400 text-sm text-center italic" id="loading_msg">Loading chat history…</p>
         </div>
 
-        <!-- Text Input Bar -->
+        <!-- Input bar -->
         <div class="flex gap-2">
-            <input id="message_input" type="text" placeholder="Write a message..." class="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
-            <button id="send_btn" class="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition">Send</button>
+            <input id="message_input" type="text" placeholder="Write a message…"
+                   class="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+            <button id="send_btn"
+                    class="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition">Send</button>
         </div>
     </div>
 
     <script>
-        // Connect to SocketIO automatically pointing to host domain
+        // FIX: use the room string pre-computed by the server so both parties share the same room
+        const chatRoom = "{{ room }}";
+
         const socket = io();
 
-        // Assigning simple deterministic room identifiers.
-        // For real setups you might want unique IDs, but a simple room string handles testing nicely.
-        const currentUserId = "{{ target_user.id }}";
-        const chatRoom = `room_user_${currentUserId}`;
+        const chatWindow    = document.getElementById('chat_window');
+        const messageInput  = document.getElementById('message_input');
+        const senderInput   = document.getElementById('sender_name');
+        const sendBtn       = document.getElementById('send_btn');
+        const loadingMsg    = document.getElementById('loading_msg');
 
-        // Connect and join the chat room context
         socket.on('connect', () => {
             socket.emit('join', { room: chatRoom });
         });
 
-        const chatWindow = document.getElementById('chat_window');
-        const messageInput = document.getElementById('message_input');
-        const senderNameInput = document.getElementById('sender_name');
-        const sendBtn = document.getElementById('send_btn');
+        // Remove the "loading" placeholder once we're connected
+        socket.on('connect', () => { loadingMsg && loadingMsg.remove(); });
 
-        // Function to render text on screen
         function appendMessage(sender, text) {
-            const msgDiv = document.createElement('div');
-            msgDiv.className = "p-2 rounded-lg max-w-xs " + 
-                              (sender === senderNameInput.value ? "bg-green-100 self-end text-right" : "bg-blue-100 self-start text-left");
-            
-            msgDiv.innerHTML = `<strong class="block text-xs text-gray-600">${sender}</strong><span>${text}</span>`;
-            chatWindow.appendChild(msgDiv);
-            chatWindow.scrollTop = chatWindow.scrollHeight; // Auto Scroll Down
+            const myName = senderInput.value.trim();
+            const isMe   = sender === myName;
+
+            const wrap = document.createElement('div');
+            wrap.className = 'flex ' + (isMe ? 'justify-end' : 'justify-start');
+
+            const bubble = document.createElement('div');
+            bubble.className = 'p-2 rounded-lg max-w-xs ' +
+                               (isMe ? 'bg-green-100 text-right' : 'bg-blue-100 text-left');
+            bubble.innerHTML = `<strong class="block text-xs text-gray-500">${sender}</strong><span>${text}</span>`;
+
+            wrap.appendChild(bubble);
+            chatWindow.appendChild(wrap);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
         }
 
-        // Listen for message broadcasts from backend
         socket.on('message_response', (data) => {
             appendMessage(data.sender, data.content);
         });
 
-        // Trigger message submission
         function sendMessage() {
-            const sender = senderNameInput.value.trim();
+            const sender  = senderInput.value.trim();
             const message = messageInput.value.trim();
 
             if (!sender) {
-                alert("Please fill in your name first to send a message!");
+                alert('Please enter your name before sending a message!');
                 return;
             }
             if (!message) return;
 
-            socket.emit('send_message', {
-                room: chatRoom,
-                sender: sender,
-                content: message
-            });
-
+            socket.emit('send_message', { room: chatRoom, sender, content: message });
             messageInput.value = '';
         }
 
