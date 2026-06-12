@@ -14,15 +14,30 @@
         .badge-seek { background-color: #28a745; }
         .chat-btn { display: block; text-align: center; margin-top: 15px; padding: 8px; background-color: #28a745; color: white; border-radius: 4px; text-decoration: none; font-weight: bold; }
         .chat-btn:hover { background-color: #218838; color: white; }
+        .my-id-bar { background: #f0f4ff; border: 1px solid #c0d0f0; border-radius: 6px; padding: 10px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; font-size: 0.95em; }
+        .my-id-bar select { padding: 4px 8px; border-radius: 4px; border: 1px solid #aaa; }
     </style>
 </head>
 <body>
 
     <div class="header-container">
         <h1>Skill Swap Platform</h1>
-        <a href="/register" class="button" style="text-decoration: none; padding: 10px 15px; background: #007bff; color: white; border-radius: 4px;">Join/Add Profile</a>
+        <a href="/register" class="button" style="text-decoration: none; padding: 10px 15px; background: #007bff; color: white; border-radius: 4px;">Join / Add Profile</a>
     </div>
 
+    <!-- "Who am I?" selector so the chat room is personalised -->
+    <div class="my-id-bar">
+        <label for="my_profile_select"><strong>You are:</strong></label>
+        <select id="my_profile_select">
+            <option value="0">— Select your profile —</option>
+            {% for user in users %}
+            <option value="{{ user.id }}">{{ user.name }}</option>
+            {% endfor %}
+        </select>
+        <span style="color:#888; font-size:0.88em;">(select yourself before clicking Chat)</span>
+    </div>
+
+    <!-- Search bar -->
     <form method="GET" action="/" style="display: flex; gap: 10px; margin-bottom: 30px;">
         <input type="text" name="search" placeholder="Search by name or skill..." value="{{ search_query }}" style="flex-grow: 1; padding: 8px;">
         <button type="submit">Search</button>
@@ -30,20 +45,36 @@
 
     <h2>Available Swappers</h2>
     <div class="profiles-container">
-        {% for profile in profiles %}
+        {% for user in users %}
         <div class="profile-card">
             <div>
-                <h3 style="margin-top: 0; color: #007bff;">{{ profile.name }}</h3>
-                <p><strong>Offering:</strong> <span class="badge">{{ profile.offering }}</span></p>
-                <p><strong>Seeking:</strong> <span class="badge badge-seek">{{ profile.seeking }}</span></p>
-                <p style="color: #555; font-style: italic;">"{{ profile.bio }}"</p>
+                <h3 style="margin-top: 0; color: #007bff;">{{ user.name }}</h3>
+                <p><strong>Offering:</strong> <span class="badge">{{ user.offering }}</span></p>
+                <p><strong>Seeking:</strong> <span class="badge badge-seek">{{ user.seeking }}</span></p>
+                <p style="color: #555; font-style: italic;">"{{ user.bio }}"</p>
             </div>
-            <a href="/chat/{{ profile.id }}" class="chat-btn">Chat</a>
+            <!-- Chat link built with JS to include the selected "my_id" -->
+            <a href="#" class="chat-btn" onclick="goToChat({{ user.id }}); return false;">Chat</a>
         </div>
         {% else %}
         <p>No swappers found matching your search criteria.</p>
         {% endfor %}
     </div>
+
+    <script>
+        function goToChat(targetId) {
+            const myId = document.getElementById('my_profile_select').value;
+            if (myId === '0') {
+                alert('Please select your own profile before starting a chat!');
+                return;
+            }
+            if (String(myId) === String(targetId)) {
+                alert("That's your own profile — pick someone else to chat with!");
+                return;
+            }
+            window.location.href = `/chat/${targetId}?my_id=${myId}`;
+        }
+    </script>
 
 </body>
 </html>
