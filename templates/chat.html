@@ -3,104 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chatting with {{ target_user.name }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+    <title>Chat with {{ target_user.name }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@example/water.css@2/out/water.css">
+    <script src="https://cdn.socketio.org/4.7.2/socket.io.min.js"></script>
+    <style>
+        body { max-width: 600px; margin: 0 auto; padding: 20px; }
+        #chat-window { border: 1px solid #ccc; height: 350px; overflow-y: scroll; padding: 15px; border-radius: 6px; background: #fdfdfd; margin-bottom: 15px; }
+        .message { margin-bottom: 10px; padding: 8px 12px; border-radius: 6px; max-width: 75%; clear: both; }
+        .msg-received { background-color: #e9ecef; float: left; }
+        .msg-sent { background-color: #d4edda; float: right; color: #155724; }
+        .input-area { display: flex; gap: 10px; }
+        #message-input { flex-grow: 1; padding: 8px; }
+    </style>
 </head>
-<body class="bg-gray-100 font-sans">
+<body>
 
-    <div class="max-w-2xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
-        <div class="flex justify-between items-center border-b pb-4 mb-4">
-            <div>
-                <a href="/" class="text-blue-500 hover:underline text-sm">&larr; Back to Dashboard</a>
-                <h1 class="text-2xl font-bold text-gray-800">Chatting with:
-                    <span class="text-green-600">{{ target_user.name }}</span>
-                </h1>
-                <p class="text-gray-500 text-sm">Their Expertise: {{ target_user.offering }}</p>
-            </div>
-        </div>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2>Chatting with {{ target_user.name }}</h2>
+        <a href="/" style="text-decoration: none;">← Back to Dashboard</a>
+    </div>
+    <p style="color: #666; margin-top: -10px;">Expertise: {{ target_user.offering }}</p>
 
-        <!-- Show who you are (pre-filled if profile was selected) -->
-        <div class="mb-4">
-            <label class="block text-gray-700 font-bold mb-2">Your Name:</label>
-            <input id="sender_name" type="text"
-                   value="{{ my_user.name if my_user else '' }}"
-                   placeholder="Enter your name to start chatting..."
-                   class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
-        </div>
+    <div id="chat-window"></div>
 
-        <!-- Message window -->
-        <div id="chat_window"
-             class="h-72 border rounded-md p-4 bg-gray-50 overflow-y-auto mb-4 flex flex-col gap-2">
-            <p class="text-gray-400 text-sm text-center italic" id="loading_msg">Loading chat history…</p>
-        </div>
-
-        <!-- Input bar -->
-        <div class="flex gap-2">
-            <input id="message_input" type="text" placeholder="Write a message…"
-                   class="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
-            <button id="send_btn"
-                    class="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition">Send</button>
-        </div>
+    <div class="input-area">
+        <input type="text" id="username-input" placeholder="Your Name" style="width: 120px; padding: 8px;">
+        <input type="text" id="message-input" placeholder="Write a message...">
+        <button id="send-btn">Send</button>
     </div>
 
     <script>
-        // FIX: use the room string pre-computed by the server so both parties share the same room
-        const chatRoom = "{{ room }}";
-
+        // Connect automatically according to server address
         const socket = io();
 
-        const chatWindow    = document.getElementById('chat_window');
-        const messageInput  = document.getElementById('message_input');
-        const senderInput   = document.getElementById('sender_name');
-        const sendBtn       = document.getElementById('send_btn');
-        const loadingMsg    = document.getElementById('loading_msg');
+        const chatWindow = document.getElementById('chat-window');
+        const usernameInput = document.getElementById('username-input');
+        const messageInput = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
 
-        socket.on('connect', () => {
-            socket.emit('join', { room: chatRoom });
-        });
-
-        // Remove the "loading" placeholder once we're connected
-        socket.on('connect', () => { loadingMsg && loadingMsg.remove(); });
-
-        function appendMessage(sender, text) {
-            const myName = senderInput.value.trim();
-            const isMe   = sender === myName;
-
-            const wrap = document.createElement('div');
-            wrap.className = 'flex ' + (isMe ? 'justify-end' : 'justify-start');
-
-            const bubble = document.createElement('div');
-            bubble.className = 'p-2 rounded-lg max-w-xs ' +
-                               (isMe ? 'bg-green-100 text-right' : 'bg-blue-100 text-left');
-            bubble.innerHTML = `<strong class="block text-xs text-gray-500">${sender}</strong><span>${text}</span>`;
-
-            wrap.appendChild(bubble);
-            chatWindow.appendChild(wrap);
-            chatWindow.scrollTop = chatWindow.scrollHeight;
-        }
-
-        socket.on('message_response', (data) => {
-            appendMessage(data.sender, data.content);
-        });
-
-        function sendMessage() {
-            const sender  = senderInput.value.trim();
-            const message = messageInput.value.trim();
-
-            if (!sender) {
-                alert('Please enter your name before sending a message!');
-                return;
+        // Listen for message events coming from backend
+        socket.on('receive_message', function(data) {
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('message');
+            
+            // Check if user sent it or someone else did
+            const currentUsername = usernameInput.value.trim();
+            if (currentUsername && data.sender === currentUsername) {
+                msgDiv.classList.add('msg-sent');
+            } else {
+                msgDiv.classList.add('msg-received');
             }
-            if (!message) return;
 
-            socket.emit('send_message', { room: chatRoom, sender, content: message });
-            messageInput.value = '';
+            msgDiv.innerHTML = `<strong>${data.sender}:</strong> ${data.message}`;
+            chatWindow.appendChild(msgDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight; // Auto Scroll Down
+        });
+
+        // Trigger message submission
+        function sendMessage() {
+            const senderName = usernameInput.value.trim() || "Anonymous";
+            const messageText = messageInput.value.trim();
+
+            if (messageText === "") return;
+
+            socket.emit('send_message', {
+                sender: senderName,
+                message: messageText
+            });
+
+            messageInput.value = "";
         }
 
         sendBtn.addEventListener('click', sendMessage);
-        messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
         });
     </script>
 </body>
