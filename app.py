@@ -19,6 +19,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 # --- DATABASE MODELS ---
 class User(db.Model):
+    __tablename__ = 'user'  # Explicitly naming the table to avoid matching issues
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     offering = db.Column(db.String(200), nullable=False)
@@ -28,6 +29,9 @@ class User(db.Model):
 # --- ROUTES ---
 @app.route('/')
 def index():
+    # FORCE CREATION GUARANTEE: This forces Render to build the table when the page loads
+    db.create_all()
+    
     search_query = request.args.get('search', '').strip()
     if search_query:
         profiles = User.query.filter(
@@ -63,12 +67,7 @@ def chat(profile_id):
 # --- SOCKET EVENTS ---
 @socketio.on('send_message')
 def handle_message(data):
-    # Broadcasts the message to everyone in the chat room
     emit('receive_message', data, broadcast=True)
-
-# --- AUTO-CREATE TABLES ON STARTUP ---
-with app.app_context():
-    db.create_all()
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)
